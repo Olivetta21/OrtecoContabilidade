@@ -1,0 +1,30 @@
+18	data in
+20	data out
+27	depois de "de " vem a quantidade de notas.
+32	"I.E. Emit.\t " = entrada | "Razão Social Dest.\t " = saida
+
+
+class NFent{
+private:
+	double tot, base, icms;
+public:
+	string chave, ied, iee, rzSocial, inscrFed, nNf, emiss, UF, sit;
+	
+	void setValues(string _tot, string _base, string _icms){
+		vector<string> _values = [_tot, _base, _icms];
+		
+		for (auto &v : _values){
+			string temp;
+			for (auto ch : v){
+				if (ch == ',') temp.push_back('.');
+				else if (ch != '.') temp.push_back(ch);
+			}
+			v = temp;
+		}
+		
+		tot = _values[0];
+		base = _values[1];
+		icms = _values[2];
+	}
+	
+}
