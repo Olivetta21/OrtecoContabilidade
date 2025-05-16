@@ -19,7 +19,6 @@
 
 namespace fs = std::filesystem;
 
-std::vector<std::string> arqs;
 std::string logLocal;
 std::string jaAttLoc;
 
@@ -272,7 +271,7 @@ void showResult(std::string add = ""){
 void cabecalho(){
     system("cls");
     std::cout << "\n"
-    << "______________________________________________________________ \n"
+    << "v1____________________________________________________________ \n"
     << "  @@@  @@@@@@@@ @@  @@   @@@   @@    @@ @@@@@@@   @@@   @@@@@@ \n"
     << " @@ @@    @@    @@  @@  @@ @@  @@           @@   @@ @@  @@  @@ \n"
     << "@@   @@   @@    @@  @@ @@   @@ @@    @@   @@@   @@   @@ @@@@   \n"
@@ -286,18 +285,16 @@ void cabecalho(){
 int main() {
     setlocale(LC_ALL, "Portuguese_Brazil.1252");
 
-    cabecalho();
-
-    {
+    {   //Identificação
         std::vector<std::string> nomespc = getNamesPC();
         nomeUser = nomespc[0];
         nomePC = nomespc[1];
     }
 
+    cabecalho();
 
     //LENDO OS LOCAIS DE CONFIGURACAO E ARQUIVOS
     std::string execLocal;
-    std::string checkLocal;
     std::vector<std::string> locais;
 
     switch(arqToStrings(CONFIG_ARQ_LOC, locais, 2)){
@@ -313,7 +310,6 @@ int main() {
             if (fs::exists(locais[0])){
                 execLocal = locais[0] + "executaveis.txt";
                 logLocal = locais[0] + "logs.txt";
-                checkLocal = locais[0] + "checks.txt";
             }
             else{
                 std::cout << "O caminho: " << locais[0] << " não foi encontrado.\n";
@@ -337,6 +333,7 @@ int main() {
 
 
     //OBTENDO LINHAS DE ONDE TEM OS ARQUIVOS DE TRANSFERENCIA
+    std::vector<std::string> arqs;
     switch(arqToStrings(execLocal, arqs, 2)){
         case 1:
             std::cerr << "Erro ao abrir o arquivo: " << execLocal << std::endl;
@@ -352,6 +349,7 @@ int main() {
                 system("pause");
                 return 1;
             }
+            // Itera sobre todos exeto o ultimo, pois ele corresponde a pasta a ser criada.
             for (int i = 0; i < arqs.size() - 1; i++){
                 if (!fs::exists(arqs[i])){
                     std::cout << "Arquivo inexistente: " << arqs[i] << "\n";
@@ -364,11 +362,9 @@ int main() {
 
     ///////////////////////
     //PEGANDO O NOME E CRIANDO A PASTA DA NOVA VERSAO
-    std::string versaoNova = arqs[arqs.size() - 1];
+    std::string versaoNova = INSTALL_LOC + arqs[arqs.size() - 1]  + "\\";
     arqs.pop_back();
 
-
-    versaoNova = INSTALL_LOC + versaoNova + "\\";
 
     if (fs::exists(versaoNova)){
         gravaLogs("ja tem a pasta da nova versao");
@@ -401,18 +397,16 @@ int main() {
     for (const std::string& s : arqs) {
         std::cout << s << " - " << restante-- << "\nResultado:";
         try {
-            fs::path origem = s;
-
-            std::string nomeArquivo = origem.filename().string();
             gravaLogs("copiando: " + nomeArquivo);
 
+            fs::path origem = s;
+            std::string nomeArquivo = origem.filename().string();
             fs::path destino = versaoNova + nomeArquivo;
-
 
 
             //ATUALIZADO ?////////////////
             bool estaAtualizado = false;
-            for (std::string str : jaArqs){
+            for (std::string& str : jaArqs){
                 if (str == nomeArquivo){
                     estaAtualizado = true;
                     break;
@@ -450,7 +444,7 @@ int main() {
 
 
     bool err = 0;
-    for (std::string a : novosDestinos){
+    for (std::string& a : novosDestinos){
         std::string nome = fs::path(a).filename().string();
 
         std::cout << "Atenção, o programa de atualização \"" << nome << "\" irá abrir automaticamente, aguarde isso acontecer.\n";
