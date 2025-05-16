@@ -178,51 +178,48 @@ int copy_with_progress(const std::filesystem::path& src, const std::filesystem::
     std::ifstream source(src, std::ios::binary);
     std::ofstream destination(dest, std::ios::binary);
 
-
     if (!source.is_open() || !destination.is_open()) {
-        std::cerr << "Erro ao abrir os arquivos de copia origem e/ou destino.\n";
+        std::cerr << "Erro ao abrir os arquivos de origem e/ou destino.\n";
         return 1;
     }
 
-    // Tamanho total do arquivo
-    std::uintmax_t total_size = std::filesystem::file_size(src);
+    const std::uintmax_t total_size = std::filesystem::file_size(src);
     std::uintmax_t copied_size = 0;
 
-    // Buffer para a cópia
-    const std::size_t buffer_size = 8192; // 8 KB
-    char buffer[buffer_size];
+    // Tenta um buffer maior primeiro (1MB)
+    const std::size_t buffer_size = 1 << 20; // 1MB
+    std::unique_ptr<char[]> buffer(new (std::nothrow) char[buffer_size]);
 
-    std::cout << "\n";
-
-    // Copia com progressão
-    while (source.read(buffer, buffer_size)) {
-        destination.write(buffer, source.gcount());
-        copied_size += source.gcount();
-
-        // Exibir progresso
-        std::cout << "\rProgresso: " << (100 * copied_size / total_size) << "%";
+    if (!buffer) {
+        std::cerr << "Falha ao alocar buffer de memória.\n";
+        return 2;
     }
 
-    // Copiar o restante
-    if (source.gcount() > 0) {
-        destination.write(buffer, source.gcount());
-        copied_size += source.gcount();
-        std::cout << "\rProgresso: " << (100 * copied_size / total_size) << "%";
+    std::cout << "Iniciando cópia de " << total_size << " bytes...\n";
+
+    int last_progress = -1;
+    while (!source.eof()) {
+        source.read(buffer.get(), buffer_size);
+        std::streamsize bytes_read = source.gcount();
+
+        if (bytes_read <= 0) break;
+
+        destination.write(buffer.get(), bytes_read);
+        copied_size += bytes_read;
+
+        int progress = static_cast<int>((100 * copied_size) / total_size);
+        if (progress != last_progress) {
+            std::cout << "\rProgresso: " << progress << "%";
+            std::cout.flush();
+            last_progress = progress;
+        }
     }
 
-    //std::cout << " \tAguarde, verificando os resultados... ";
-
-    //std::string H1 = fnv1aHash(src.string()), H2 = fnv1aHash(dest.string());
-    //if (H1==H1) {
-    //    std::cout << "OK.\n";
-    //    return 0;
-    //}
-    //else {
-    //    std::cout << "hashes diferentes:" << H1 << "|" << H2 << "\n";
-    //}
-
+    destination.flush();
+    std::cout << "\rProgresso: 100%\nConcluído com sucesso.\n";
     return 0;
 }
+
 
 ////////////////////////////////////////////////
 int abrirPrograma(std::string local) {
@@ -328,7 +325,7 @@ struct AtUseCheck{
     int bloquear(){
 		//desativando
 		if (true) return 0;
-		
+
         int returnCode = -1;
 
         while (returnCode == -1){
@@ -383,7 +380,7 @@ struct AtUseCheck{
     int liberar(){
 		//desativando
 		if (true) return 0;
-		
+
         int limite = 10000;
         while (limite--){
             std::ofstream checkToClose(checkLocal);
