@@ -290,15 +290,6 @@ int main() {
     setlocale(LC_ALL, "Portuguese_Brazil.1252");
 
 
-    if (createDirectoryIfNotExists(INSTALL_LOC)) {
-        gravaLogs("Não foi possivel criar o diretorio de instalação");
-
-        std::cout << "diretorio de instalação não criado!\n";
-        system("pause");
-        return 1;
-    }
-
-
     cabecalho();
 
     {
@@ -340,6 +331,13 @@ int main() {
 
     gravaLogs("Abriu o Programa");
 
+    if (createDirectory(INSTALL_LOC)) {
+        gravaLogs("Não foi possivel criar o diretorio de instalação");
+
+        std::cout << "diretorio de instalação não criado!\n";
+        system("pause");
+        return 1;
+    }
 
 
     //OBTENDO LINHAS DE ONDE TEM OS ARQUIVOS DE TRANSFERENCIA
@@ -480,7 +478,7 @@ int main() {
     }
 
     if (!err){
-        cabecalho();
+        system("cls");
         showResult("SISTEMA ATUALIZADO! PODE FECHAR ESSA JANELA E ENTRAR NO SISTEMA AGORA!\n");
     }
 
