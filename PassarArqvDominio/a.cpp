@@ -429,15 +429,31 @@ int main() {
             std::string nomeArquivo = origem.filename().string();
             fs::path destino = versaoNova + nomeArquivo;
             gravaLogs("copiando: " + nomeArquivo);
-            std::cout << nomeArquivo << " - " << restante-- << "\nResultado:";
+            std::cout << nomeArquivo << " - " << restante-- << "\nResultado: ";
 
 
             //ATUALIZADO ?////////////////
             bool estaAtualizado = false;
+            bool repeating = false;
             for (std::string& str : jaArqs){
                 if (str == nomeArquivo){
-                    estaAtualizado = true;
-                    break;
+                    repeating = true;
+                    std::string resposta = "";
+                    std::cout << "Foi identificado que esse instalador já foi executado uma vez. Deseja executa-lo novamente?";
+                    while (resposta != "sim" && resposta != "não") {
+                        std::cout << "\nS / N: ";
+                        std::cin >> resposta;
+
+                        if (resposta == "s" || resposta == "S") {
+                            estaAtualizado = false;
+                            break;
+                        }
+                        else if (resposta == "n" || resposta == "N") {
+                            estaAtualizado = true;
+                            break;
+                        }
+
+                    }
                 }
             }
             if (estaAtualizado) {
@@ -446,6 +462,8 @@ int main() {
             }
             //////////////////////////////
 
+
+            if (!repeating) gravaJaAtt(jaAttLoc, nomeArquivo);
 
 
             // Copia o arquivo para o novo diretório
@@ -484,7 +502,6 @@ int main() {
             break;
         }
         else {
-            gravaJaAtt(jaAttLoc, nome);
             gravaLogs("atualizou: " + nome);
         }
     }
