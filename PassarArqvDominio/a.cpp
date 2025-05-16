@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <locale.h>
 #include <filesystem>
 #include <fstream>
@@ -147,7 +148,14 @@ int copy_with_progress(const std::filesystem::path& src, const std::filesystem::
         return 2;
     }
 
-    std::cout << "Iniciando cópia de " << total_size << " bytes...\n";
+    std::string size_lbl = "Gb";
+    double tot = (double) total_size / (double)(1024*1024*1024);
+    if (tot < 1) {
+        tot = (double)total_size / (double)(1024*1024);
+        size_lbl = "Mb";
+    }
+
+    std::cout << "Iniciando cópia de " << std::fixed << std::setprecision(2) << tot << size_lbl << "\n";
 
     int last_progress = -1;
     while (!source.eof()) {
@@ -226,6 +234,25 @@ int abrirPrograma(std::string local) {
 }
 ////////////////////////////////////////////////
 
+
+void deleteFoldersExcept(const std::string& installLoc, const std::string& exclude) {
+    try {
+        for (const auto& entry : fs::directory_iterator(installLoc)) {
+            if (entry.is_directory()) {
+                std::string folderName = entry.path().filename().string();
+
+                if (folderName != exclude) {
+                    std::cout << "Deletando pasta: " << entry.path() << std::endl;
+                    fs::remove_all(entry.path());
+                } else {
+                    std::cout << "Mantendo pasta: " << entry.path() << std::endl;
+                }
+            }
+        }
+    } catch (const fs::filesystem_error& e) {
+        std::cerr << "Erro ao acessar o sistema de arquivos: " << e.what() << std::endl;
+    }
+}
 
 int arqToStrings(std::string arq, std::vector<std::string> &vec, int tentativas = 1){
 
@@ -362,8 +389,9 @@ int main() {
 
     ///////////////////////
     //PEGANDO O NOME E CRIANDO A PASTA DA NOVA VERSAO
-    std::string versaoNova = INSTALL_LOC + arqs[arqs.size() - 1]  + "\\";
+    std::string pastaNova = arqs[arqs.size() - 1];
     arqs.pop_back();
+    std::string versaoNova = INSTALL_LOC + pastaNova  + "\\";
 
 
     if (fs::exists(versaoNova)){
@@ -395,13 +423,13 @@ int main() {
     std::cout << "\nMovendo arquivos...\n\n";
     int restante = arqs.size();
     for (const std::string& s : arqs) {
-        std::cout << s << " - " << restante-- << "\nResultado:";
         try {
-            gravaLogs("copiando: " + nomeArquivo);
 
             fs::path origem = s;
             std::string nomeArquivo = origem.filename().string();
             fs::path destino = versaoNova + nomeArquivo;
+            gravaLogs("copiando: " + nomeArquivo);
+            std::cout << nomeArquivo << " - " << restante-- << "\nResultado:";
 
 
             //ATUALIZADO ?////////////////
@@ -427,6 +455,7 @@ int main() {
                 system("pause");
                 return 1;
             }
+
             novosDestinos.push_back(destino.string());
 
         } catch (const fs::filesystem_error& e) {
@@ -439,10 +468,10 @@ int main() {
     ///////////////////////
 
 
-
     gravaLogs("finalizou");
 
 
+    //EXECUTAR OS ARUIVOS DO DESTINO////////
     bool err = 0;
     for (std::string& a : novosDestinos){
         std::string nome = fs::path(a).filename().string();
@@ -460,15 +489,20 @@ int main() {
         }
     }
 
+
     if (!err){
         system("cls");
+        //Apagando versoes antigas
+        std::cout << "Deletando arquivos de instalação antigos...\n";
+        deleteFoldersExcept(INSTALL_LOC, pastaNova);
+        std::cout << "\n\n\n";
+
         showResult("SISTEMA ATUALIZADO! PODE FECHAR ESSA JANELA E ENTRAR NO SISTEMA AGORA!\n");
     }
-
+    ///////////////////////////////////////////
 
 
     gravaLogs("fechou o programa.");
-    std::cout << "Por favor, pressione ENTER para FECHAR o programa.\n";
     system("pause");
     return 0;
 }
