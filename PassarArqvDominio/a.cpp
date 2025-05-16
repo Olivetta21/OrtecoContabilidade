@@ -326,6 +326,9 @@ struct AtUseCheck{
     }
 
     int bloquear(){
+		//desativando
+		if (true) return 0;
+		
         int returnCode = -1;
 
         while (returnCode == -1){
@@ -378,6 +381,9 @@ struct AtUseCheck{
     }
 
     int liberar(){
+		//desativando
+		if (true) return 0;
+		
         int limite = 10000;
         while (limite--){
             std::ofstream checkToClose(checkLocal);
