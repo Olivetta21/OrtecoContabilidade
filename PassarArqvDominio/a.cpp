@@ -15,6 +15,7 @@
 #define INUSE "wait_someone_to_end_the_task"
 #define NOTINUSE "you_can_do_the_task"
 #define CONFIG_ARQ_LOC "local.txt"
+#define INSTALL_LOC "C:\\Program Files\\AtualizacoesDominio\\"
 
 namespace fs = std::filesystem;
 
@@ -425,6 +426,16 @@ void cabecalho(){
 int main() {
     setlocale(LC_ALL, "Portuguese_Brazil.1252");
 
+
+    if (createDirectoryIfNotExists(INSTALL_LOC)) {
+        gravaLogs("Não foi possivel criar o diretorio de instalação");
+
+        std::cout << "diretorio de instalação não criado!\n";
+        system("pause");
+        return 1;
+    }
+
+
     cabecalho();
 
     {
@@ -509,6 +520,10 @@ int main() {
     //PEGANDO O NOME E CRIANDO A PASTA DA NOVA VERSAO
     std::string versaoNova = arqs[arqs.size() - 1];
     arqs.pop_back();
+
+
+    versaoNova = INSTALL_LOC + versaoNova + "\\";
+
     if (fs::exists(versaoNova)){
         gravaLogs("ja tem a pasta da nova versao");
     }
@@ -522,7 +537,6 @@ int main() {
             return 1;
         }
     }
-    versaoNova = fs::current_path().string() + "\\" + versaoNova + "\\";
     ///////////////////////
 
 
