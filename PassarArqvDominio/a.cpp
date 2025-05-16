@@ -210,18 +210,18 @@ int copy_with_progress(const std::filesystem::path& src, const std::filesystem::
         std::cout << "\rProgresso: " << (100 * copied_size / total_size) << "%";
     }
 
-    std::cout << " \tAguarde, verificando os resultados... ";
+    //std::cout << " \tAguarde, verificando os resultados... ";
 
-    std::string H1 = fnv1aHash(src.string()), H2 = fnv1aHash(dest.string());
-    if (H1==H1) {
-        std::cout << "OK.\n";
-        return 0;
-    }
-    else {
-        std::cout << "hashes diferentes:" << H1 << "|" << H2 << "\n";
-    }
+    //std::string H1 = fnv1aHash(src.string()), H2 = fnv1aHash(dest.string());
+    //if (H1==H1) {
+    //    std::cout << "OK.\n";
+    //    return 0;
+    //}
+    //else {
+    //    std::cout << "hashes diferentes:" << H1 << "|" << H2 << "\n";
+    //}
 
-    return 2;
+    return 0;
 }
 
 ////////////////////////////////////////////////
