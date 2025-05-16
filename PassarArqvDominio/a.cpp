@@ -130,51 +130,6 @@ bool createDirectory(const std::string& dir){
 }
 
 
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////
-std::string fnv1aHash(const std::string& filePath) {
-    const uint64_t FNV_PRIME = 0x100000001B3;
-    const uint64_t OFFSET_BASIS = 0xCBF29CE484222325;
-    uint64_t hash = OFFSET_BASIS;
-
-    std::ifstream file(filePath, std::ios::binary);
-    if (!file.is_open()) {
-        std::cerr << "Erro ao calcular o hash do arquivo: " << fs::path(filePath).filename().string() << std::endl;
-        return "";
-    }
-
-    char byte;
-    while (file.get(byte)) {
-        hash ^= static_cast<unsigned char>(byte);
-        hash *= FNV_PRIME;
-    }
-
-    file.close();
-
-
-
-    //COMPRIMIR EM 15 HEXADECIMAIS//////////////////////////////////////////////////////////
-    const uint64_t MASK_60BITS = 0xFFFFFFFFFFFFFFF; // 15 caracteres hexadecimais (60 bits)
-
-    // Aplica uma máscara para garantir que o hash tenha no máximo 60 bits
-    uint64_t compressedHash = hash & MASK_60BITS;
-
-    // Se o hash original for maior que 60 bits, "fold" (comprime) o hash
-    if (hash > MASK_60BITS) {
-        compressedHash ^= (hash >> 60);
-    }
-
-    // Converte o hash comprimido para uma string hexadecimal de 15 caracteres
-    std::stringstream ss;
-    ss << std::hex << std::uppercase << std::setw(15) << std::setfill('0') << compressedHash;
-
-
-
-    return ss.str();
-}
-
-
 int copy_with_progress(const std::filesystem::path& src, const std::filesystem::path& dest) {
     std::ifstream source(src, std::ios::binary);
     std::ofstream destination(dest, std::ios::binary);
@@ -305,98 +260,6 @@ int arqToStrings(std::string arq, std::vector<std::string> &vec, int tentativas 
     return 1;
 }
 
-
-struct AtUseCheck{
-    std::string buffer;
-    std::string last_buffer;
-
-    std::string checkLocal;
-
-    AtUseCheck(std::string loc): checkLocal(loc){std::srand(std::time(nullptr));}
-
-    int randNum(){
-        int tempo (MINS + std::rand() % (MAXS - MINS + 1));
-        std::cout << "\r";
-        for (char ch : last_buffer) std::cout << " ";
-        std::cout << "\r" << buffer << "(" << tempo << ")";
-        last_buffer = buffer + "            ";
-        return tempo;
-    }
-
-    int bloquear(){
-		//desativando
-		if (true) return 0;
-
-        int returnCode = -1;
-
-        while (returnCode == -1){
-            std::fstream check(checkLocal, std::ios::in | std::ios::out);
-
-            if (!check.is_open()) {
-                buffer = "Tentando abrir checks." + checkLocal;
-                Sleep(randNum());
-                continue;
-            }
-            else {
-                std::string linha;
-                std::vector<std::string> chks;
-
-                while(std::getline(check, linha)){
-                    chks.push_back(linha);
-                }
-
-                if (chks.size() < 1){   //se nao tiver nada no checks:
-                    buffer = "arquivo de checagem está vazio!";
-                    Sleep(randNum());
-                    continue;
-                }
-
-                std::string user = "Outra pessoa";
-
-                if (chks.size() >= 2 && chks[1].size() > 0) user = chks[1];
-
-                if (chks[0] == NOTINUSE || (chks[0] == INUSE && user == std::string(nomeUser+nomePC))){
-                    check.clear(); // Limpa flags de erro
-                    check.seekp(0, std::ios::beg);
-                    check << INUSE << "\n" << nomeUser << nomePC;
-                    std::cout << "Tudo certo, realizando a transferencia...\n";
-                    returnCode = 0;
-                }
-                else if (chks[0] == INUSE){
-                    buffer = user + " está transferindo, aguardando terminar.";
-                    Sleep(randNum());
-                    continue;
-                }
-                else {
-                    buffer = "Opa, tag não identificada. Por favor, avise o IVAN";
-                    Sleep(randNum());
-                    continue;
-                }
-            }
-            check.close();
-        }
-        return returnCode;
-    }
-
-    int liberar(){
-		//desativando
-		if (true) return 0;
-
-        int limite = 10000;
-        while (limite--){
-            std::ofstream checkToClose(checkLocal);
-            if (checkToClose.is_open()) {
-                checkToClose << NOTINUSE;
-                checkToClose.close();
-                return 0;
-            }
-        }
-        return 1;
-    }
-};
-
-
-
 void showResult(std::string add = ""){
     std::cout
     << "      @@@@@@@@@@@@    @@   @@@                    \n"
@@ -479,36 +342,25 @@ int main() {
 
 
 
-    //VERIFICA SE TEM ALGUEM USANDO.
-    AtUseCheck Check_(checkLocal);
-    Check_.bloquear();
-    ///////////////////////
-
-
-
     //OBTENDO LINHAS DE ONDE TEM OS ARQUIVOS DE TRANSFERENCIA
     switch(arqToStrings(execLocal, arqs, 2)){
         case 1:
             std::cerr << "Erro ao abrir o arquivo: " << execLocal << std::endl;
-            Check_.liberar();
             system("pause");
             return 1;
         case 2:
             std::cout << "\nSem linhas em: " << execLocal << "\n";
-            Check_.liberar();
             system("pause");
             return 1;
         case 0:
             if (arqs.size() < 2) {
                 std::cout << "OPS, não foi definido nenhum arquivo de atualização para ser transferido!\n";
-                Check_.liberar();
                 system("pause");
                 return 1;
             }
             for (int i = 0; i < arqs.size() - 1; i++){
                 if (!fs::exists(arqs[i])){
                     std::cout << "Arquivo inexistente: " << arqs[i] << "\n";
-                    Check_.liberar();
                     system("pause");
                     return 1;
                 }
@@ -532,7 +384,6 @@ int main() {
             gravaLogs("nao conseguiu criar a pasta da nova versao.");
 
             std::cout << "pasta da nova versao nao criada!\n";
-            Check_.liberar();
             system("pause");
             return 1;
         }
@@ -586,7 +437,6 @@ int main() {
                 if(copy_with_progress(origem, destino)){
                     gravaLogs("erro copiar: " + nomeArquivo);
                     std::cout << "Erro ao copiar o arquivo: " << nomeArquivo << "\n";
-                    Check_.liberar();
                     system("pause");
                     return 1;
                 }
@@ -607,11 +457,6 @@ int main() {
     std::cout << "\nTRANSFERÊNCIA CONCLUÍDA, AGORA ESPERE\n TODAS AS ATUALIZAÇÕES SEREM EXECUTADAS.\nNÃO FECHE ESSA JANELA AINDA!!!!\n\n\n";
     ///////////////////////
 
-
-
-    //COLOCANDO A FLAG NOTINUSE NO CHECKS
-    Check_.liberar();
-    ///////////////////////
 
 
     gravaLogs("finalizou");
