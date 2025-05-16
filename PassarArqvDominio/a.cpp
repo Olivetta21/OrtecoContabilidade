@@ -103,8 +103,6 @@ void gravaJaAtt(std::string jaAttPlace, std::string text){
     }
 }
 
-
-
 bool createDirectoryIfNotExists(const std::string& dir) {
     try {
         if (!fs::exists(dir)) {
@@ -128,7 +126,6 @@ bool createDirectory(const std::string& dir){
     }
     return 1;
 }
-
 
 int copy_with_progress(const std::filesystem::path& src, const std::filesystem::path& dest) {
     std::ifstream source(src, std::ios::binary);
@@ -289,7 +286,6 @@ void cabecalho(){
 int main() {
     setlocale(LC_ALL, "Portuguese_Brazil.1252");
 
-
     cabecalho();
 
     {
@@ -431,19 +427,12 @@ int main() {
 
 
             // Copia o arquivo para o novo diretório
-            if (!fs::exists(destino)) {
-                if(copy_with_progress(origem, destino)){
-                    gravaLogs("erro copiar: " + nomeArquivo);
-                    std::cout << "Erro ao copiar o arquivo: " << nomeArquivo << "\n";
-                    system("pause");
-                    return 1;
-                }
+            if(copy_with_progress(origem, destino)){
+                gravaLogs("erro copiar: " + nomeArquivo);
+                std::cout << "Erro ao copiar o arquivo: " << nomeArquivo << "\n";
+                system("pause");
+                return 1;
             }
-            else {
-                std::cout << "você já tem esse arquivo";
-                gravaLogs("ja tem o arquivo");
-            }
-
             novosDestinos.push_back(destino.string());
 
         } catch (const fs::filesystem_error& e) {
