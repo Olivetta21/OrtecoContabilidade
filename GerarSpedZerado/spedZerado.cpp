@@ -94,7 +94,7 @@ int main(int argc, char* argv[]) {
         cin >> fimInvent;
 
         datas = {
-            "|0000|018|0|" + datainicio + "|" + datafim,
+            "|0000|019|0|" + datainicio + "|" + datafim,
             "|0100|JAFE CANDIDO DA CUNHA|31323472134|1-MS-004055/O-0||74000000|RUA JOAO ROSA GOES|167||CENTRO|6734164600||jafe@terra.com.br|5003702|",
             "|0990|5|",
             "|B001|1|",
@@ -159,7 +159,7 @@ int main(int argc, char* argv[]) {
     else {
             cout << "\nSem Inventario:\n";
         datas = {
-            "|0000|018|0|" + datainicio + "|" + datafim,
+            "|0000|019|0|" + datainicio + "|" + datafim,
             "|0100|JAFE CANDIDO DA CUNHA|31323472134|1-MS-004055/O-0||74000000|RUA JOAO ROSA GOES|167||CENTRO|6734164600||jafe@terra.com.br|5003702|",
             "|0990|5|",
             "|B001|1|",
