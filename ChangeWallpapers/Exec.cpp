@@ -9,6 +9,7 @@
 #include <set>
 #include <filesystem>
 #include <algorithm>
+#define CONFIGDIR ".Configuracao/"
 
 namespace fs = std::filesystem;
 
@@ -25,7 +26,7 @@ class UserVerifier {
 private:
     std::string user;
     std::string domain;
-    std::string teste;
+    std::string psExecDir = CONFIGDIR "PsExec.exe";
 
     std::string getCurrentDomain() {
         char domain[256];
@@ -66,7 +67,7 @@ private:
 
     DWORD testPassword(const std::string& password) {
         std::ostringstream cmdBuilder;
-        cmdBuilder << "PsExec.exe -accepteula -nobanner -u \"" << getFullUser() //o PsExec está na mesma pasta do executável
+        cmdBuilder << psExecDir << " -accepteula -nobanner -u \"" << getFullUser() //o PsExec está na mesma pasta do executável
                   << "\" -p \"" << password
                   << "\" cmd /c exit";
         // Estruturas para CreateProcess
@@ -90,7 +91,7 @@ private:
             &pi))                   // Informações do processo
         {
             std::cerr << "Falha ao iniciar o processo: " << GetLastError() << std::endl;
-            return false;
+            return -1; // Retorna erro
         }
 
         // Aguarda o processo terminar
@@ -217,9 +218,9 @@ private:
 public:
 
     Voto() {
-        pasta = "imagens";
-        arquivoVotos = "votos.txt";
-        destinoImgVencedora = "wallpaper/vencedora.png";
+        pasta = "Candidatas_PNG";
+        arquivoVotos = CONFIGDIR "votos.txt";
+        destinoImgVencedora = "wallpaper.png";
     }
 
     bool usuarioJaVotou(const std::string& usuario) {
@@ -345,7 +346,6 @@ int main(int argc, char* argv[]) {
         if (std::string(argv[1]) == "/reset") {
             Voto().resetVotos();
         }
-        pressToContinue();
         return 0;
     }
 
