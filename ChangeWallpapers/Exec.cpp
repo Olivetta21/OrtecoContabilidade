@@ -135,6 +135,7 @@ class Voto {
 private:
     std::string pasta;
     std::string arquivoVotos;
+    std::string destinoImgVencedora;
     
     struct VotoDB {
         std::string usuario;
@@ -189,26 +190,28 @@ private:
         fout << usuario << "|" << imagem << "\n";
     }
 
-    void mostrarResultado() {
+    std::map<std::string, int> resultadoParcial() {
         std::map<std::string, int> contagem;
         for (const auto& v : votos) {
             contagem[v.imagem]++;
         }
+        return contagem;
+    }
 
-        std::cout << "Votos gerais:\n";
-        for (const auto& [imagem, qtd] : contagem) {
-            std::cout << imagem << ": " << qtd << " voto(s)\n";
+    std::pair<std::string, int> resultadoGanhador() {
+        std::map<std::string, int> contagem;
+        for (const auto& v : votos) {
+            contagem[v.imagem]++;
         }
-
-        std::cout << '\n';
 
         if (!contagem.empty()) {
             auto max = std::max_element(contagem.begin(), contagem.end(),
                 [](const auto& a, const auto& b) {
                     return a.second < b.second;
                 });
-            std::cout << "Imagem mais votada: " << max->first << " com " << max->second << " voto(s).\n";
-        }
+            return { max->first, max->second };
+        } 
+        return { "", 0 };
     }
 
 public:
@@ -216,6 +219,7 @@ public:
     Voto() {
         pasta = "imagens";
         arquivoVotos = "votos.txt";
+        destinoImgVencedora = "wallpaper/vencedora.png";
     }
 
     bool usuarioJaVotou(const std::string& usuario) {
@@ -256,7 +260,21 @@ public:
         carregarVotos();
 
         std::cout << linebreak() << "\n";
-        mostrarResultado();
+
+        //Parcial
+        std::cout << "Resultados parciais:\n";
+        auto votosParciais = resultadoParcial();
+        for (const auto& [imagem, qtd] : votosParciais) {
+            std::cout << imagem << ": " << qtd << " voto(s)\n";
+        }
+
+        std::cout << "\n";
+
+        //Ganhador
+        auto [imagemGanhadora, votosGanhadora] = resultadoGanhador();
+        std::cout << "Imagem mais votada: " << imagemGanhadora << " com " << votosGanhadora << " voto(s).\n";
+
+
         std::cout << linebreak() << "\n";
     }
 
@@ -269,6 +287,34 @@ public:
             }
         }
         return "";
+    }
+
+
+    void resetVotos() {
+        carregarVotos();
+
+        std::string imagemVencedora = resultadoGanhador().first;
+        if (imagemVencedora.empty()) {
+            std::cout << "Nenhum voto registrado.\n";
+            return;
+        }
+
+        // Copia a imagem vencedora para o destino
+        std::string origem = pasta + "/" + imagemVencedora;
+        std::string destino = destinoImgVencedora;
+
+        std::ifstream src(origem, std::ios::binary);
+        std::ofstream dst(destino, std::ios::binary);
+        dst << src.rdbuf();
+
+
+        std::cout << "Imagem vencedora '" << imagemVencedora << "' copiada para '" << destinoImgVencedora << "'.\n";
+        votos.clear();
+        std::ofstream fout(arquivoVotos, std::ios::trunc);
+        fout.close();
+
+
+        std::cout << "Votos reiniciados com sucesso!\n";
     }
 
 };
@@ -294,6 +340,14 @@ void fazerVotacao() {
 
 int main(int argc, char* argv[]) {
     setlocale(LC_ALL, "Portuguese_Brazil.1252");
+
+    if (argc > 1) {
+        if (std::string(argv[1]) == "/reset") {
+            Voto().resetVotos();
+        }
+        pressToContinue();
+        return 0;
+    }
 
     std::cout << "Bem-vindo!\n";
     while (true) {
