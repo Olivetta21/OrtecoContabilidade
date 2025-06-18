@@ -135,17 +135,20 @@ class Voto {
 private:
     std::string pasta;
     std::string arquivoVotos;
-    std::vector<std::string> imagens;
-
+    
     struct VotoDB {
         std::string usuario;
         std::string imagem;
     };
-
+    
+    std::vector<std::string> imagens;
     std::vector<VotoDB> votos;
     
-    
-    std::vector<std::string> listarImagens() {
+
+    void carregarImagens() {
+        if (imagens.size() > 0) {
+            return; // Já carregou as imagens
+        }
         std::vector<std::string> imagens;
         for (const auto& entry : fs::directory_iterator(pasta)) {
             if (entry.is_regular_file()) {
@@ -157,12 +160,15 @@ private:
             }
         }
         std::sort(imagens.begin(), imagens.end());
-        return imagens;
+        this->imagens = imagens;
     }
-    
-    
-    
-    std::vector<VotoDB> carregarVotos() {
+
+
+
+    void carregarVotos() {
+        if (votos.size() > 0) {
+            return; // Já carregou os votos
+        }
         std::vector<VotoDB> votos;
         std::ifstream fin(arquivoVotos);
         std::string linha;
@@ -175,55 +181,12 @@ private:
                 votos.push_back(v);
             }
         }
-        return votos;
+        this->votos = votos;
     }
 
     void salvarVoto(const std::string& usuario, const std::string& imagem) {
         std::ofstream fout(arquivoVotos, std::ios::app);
         fout << usuario << "|" << imagem << "\n";
-    }
-    
-public:
-    
-    Voto() {
-        pasta = "imagens";
-        arquivoVotos = "votos.txt";
-        imagens = listarImagens();
-        if (imagens.empty()) {
-            std::cout << "Nenhuma imagem .png encontrada na pasta '" << pasta << "'.\n";
-        }
-        votos = carregarVotos();
-    }
-
-    bool usuarioJaVotou(const std::string& usuario) {
-        for (const auto& v : votos) {
-            if (v.usuario == usuario)
-                return true;
-        }
-        return false;
-    }
-    
-    void listarOpcoes() {
-        std::cout << "Imagens disponíveis para votação:\n";
-        for (size_t i = 0; i < imagens.size(); ++i) {
-            std::cout << i << ": " << imagens[i] << "\n";
-        }
-    }
-
-    void votar(const std::string& usuario) {
-        int escolha;
-        std::cout << "Digite o número da imagem que deseja votar: ";
-        std::cin >> escolha;
-
-        if (escolha < 0 || escolha >= (int)imagens.size()) {
-            std::cout << "ID inválido!\n";
-            return;
-        }
-
-        salvarVoto(usuario, imagens[escolha]);
-        std::cout << "Voto registrado com sucesso!\n";
-
-        votos = carregarVotos(); // recarrega para incluir novo voto
     }
 
     void mostrarResultado() {
@@ -248,7 +211,58 @@ public:
         }
     }
 
+public:
+
+    Voto() {
+        pasta = "imagens";
+        arquivoVotos = "votos.txt";
+    }
+
+    bool usuarioJaVotou(const std::string& usuario) {
+        carregarVotos();
+        for (const auto& v : votos) {
+            if (v.usuario == usuario)
+                return true;
+        }
+        return false;
+    }
+
+    void listarOpcoes() {
+        carregarImagens();
+        std::cout << "Imagens disponíveis para votação:\n";
+        for (size_t i = 0; i < imagens.size(); ++i) {
+            std::cout << i << ": " << imagens[i] << "\n";
+        }
+    }
+
+    void votar(const std::string& usuario) {
+        carregarVotos();
+        carregarImagens();
+
+        int escolha;
+        std::cout << "Digite o número da imagem que deseja votar: ";
+        std::cin >> escolha;
+
+        if (escolha < 0 || escolha >= (int)imagens.size()) {
+            std::cout << "ID inválido!\n";
+            return;
+        }
+
+        salvarVoto(usuario, imagens[escolha]);
+        std::cout << "Voto registrado com sucesso!\n";
+    }
+    
+    void verResultados() {
+        carregarVotos();
+
+        std::cout << linebreak() << "\n";
+        mostrarResultado();
+        std::cout << linebreak() << "\n";
+    }
+
     std::string pickUserVote(const std::string& user) {
+        carregarVotos();
+        
         for (const VotoDB& v : votos) {
             if (v.usuario == user) {
                 return v.imagem;
@@ -273,18 +287,10 @@ void fazerVotacao() {
     }
     else {
         std::cout << "O usuário '" << fullUser << "' já votou em: '" << voto.pickUserVote(fullUser) << "'\n";
-        std::cout << linebreak() << "\n";
-        voto.mostrarResultado();
-        std::cout << linebreak() << "\n";
     }
 }
 
-void verResultados() {
-    Voto voto;
-    std::cout << linebreak() << "\n";
-    voto.mostrarResultado();
-    std::cout << linebreak() << "\n";
-}
+
 
 int main(int argc, char* argv[]) {
     setlocale(LC_ALL, "Portuguese_Brazil.1252");
@@ -298,7 +304,7 @@ int main(int argc, char* argv[]) {
         char opcao;
         opcao = _getch();
 
-        std::cout << "\n";
+        system("cls");
 
         switch (opcao)
         {
@@ -306,7 +312,7 @@ int main(int argc, char* argv[]) {
             fazerVotacao();
             break;
         case '2':
-            verResultados();
+            Voto().verResultados();
             break;
         default:
             std::cout << "Opção inválida!\n";
