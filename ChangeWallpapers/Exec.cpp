@@ -12,11 +12,21 @@
 
 namespace fs = std::filesystem;
 
+std::string linebreak() {
+    return std::string(50, '-');
+}
+
+void pressToContinue() {
+    std::cout << "\npressione para voltar...\n";
+    _getch();
+}
+
 class UserVerifier {
 private:
     std::string user;
     std::string domain;
-    
+    std::string teste;
+
     std::string getCurrentDomain() {
         char domain[256];
         DWORD size = sizeof(domain);
@@ -62,10 +72,10 @@ private:
         // Estruturas para CreateProcess
         STARTUPINFOA si = { sizeof(STARTUPINFOA) };
         PROCESS_INFORMATION pi;
-        
+
         si.dwFlags = STARTF_USESHOWWINDOW;
         si.wShowWindow = SW_HIDE;  // Esconde a janela
-        
+
         // Cria o processo
         if (!CreateProcessA(
             NULL,                   // Sem aplicativo específico
@@ -82,14 +92,14 @@ private:
             std::cerr << "Falha ao iniciar o processo: " << GetLastError() << std::endl;
             return false;
         }
-        
+
         // Aguarda o processo terminar
         WaitForSingleObject(pi.hProcess, INFINITE);
 
         // Obtém o código de saída
         DWORD exitCode = 0;
         GetExitCodeProcess(pi.hProcess, &exitCode);
-        
+
         // Fecha os handles
         CloseHandle(pi.hProcess);
         CloseHandle(pi.hThread);
@@ -100,7 +110,7 @@ private:
 
 
 public:
-    UserVerifier () {        
+    UserVerifier () {
         user = getCurrentUsername();
         domain = getCurrentDomain();
     }
@@ -126,7 +136,7 @@ private:
     std::string pasta;
     std::string arquivoVotos;
     std::vector<std::string> imagens;
-    
+
     struct VotoDB {
         std::string usuario;
         std::string imagem;
@@ -134,18 +144,10 @@ private:
 
     std::vector<VotoDB> votos;
     
-    bool usuarioJaVotou(const std::vector<VotoDB>& votos, const std::string& usuario) {
-        for (const auto& v : votos) {
-            if (v.usuario == usuario)
-                return true;
-        }
-        return false;
-    }
-
     
-    std::vector<std::string> listarImagens(const std::string& caminho) {
+    std::vector<std::string> listarImagens() {
         std::vector<std::string> imagens;
-        for (const auto& entry : fs::directory_iterator(caminho)) {
+        for (const auto& entry : fs::directory_iterator(pasta)) {
             if (entry.is_regular_file()) {
                 auto ext = entry.path().extension().string();
                 std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
@@ -157,12 +159,12 @@ private:
         std::sort(imagens.begin(), imagens.end());
         return imagens;
     }
-
     
     
-    std::vector<VotoDB> carregarVotos(const std::string& arquivo) {
+    
+    std::vector<VotoDB> carregarVotos() {
         std::vector<VotoDB> votos;
-        std::ifstream fin(arquivo);
+        std::ifstream fin(arquivoVotos);
         std::string linha;
         while (std::getline(fin, linha)) {
             size_t pos = linha.find('|');
@@ -176,18 +178,31 @@ private:
         return votos;
     }
 
+    void salvarVoto(const std::string& usuario, const std::string& imagem) {
+        std::ofstream fout(arquivoVotos, std::ios::app);
+        fout << usuario << "|" << imagem << "\n";
+    }
+    
 public:
-
+    
     Voto() {
         pasta = "imagens";
         arquivoVotos = "votos.txt";
-        imagens = listarImagens(pasta);
+        imagens = listarImagens();
         if (imagens.empty()) {
             std::cout << "Nenhuma imagem .png encontrada na pasta '" << pasta << "'.\n";
         }
-        votos = carregarVotos(arquivoVotos);
+        votos = carregarVotos();
     }
 
+    bool usuarioJaVotou(const std::string& usuario) {
+        for (const auto& v : votos) {
+            if (v.usuario == usuario)
+                return true;
+        }
+        return false;
+    }
+    
     void listarOpcoes() {
         std::cout << "Imagens disponíveis para votação:\n";
         for (size_t i = 0; i < imagens.size(); ++i) {
@@ -196,11 +211,6 @@ public:
     }
 
     void votar(const std::string& usuario) {
-        if (usuarioJaVotou(votos, usuario)) {
-            std::cout << "Você já votou! Apenas um voto por usuário é permitido.\n";
-            return;
-        }
-
         int escolha;
         std::cout << "Digite o número da imagem que deseja votar: ";
         std::cin >> escolha;
@@ -210,10 +220,10 @@ public:
             return;
         }
 
-        salvarVoto(arquivoVotos, usuario, imagens[escolha]);
+        salvarVoto(usuario, imagens[escolha]);
         std::cout << "Voto registrado com sucesso!\n";
 
-        votos = carregarVotos(arquivoVotos); // recarrega para incluir novo voto
+        votos = carregarVotos(); // recarrega para incluir novo voto
     }
 
     void mostrarResultado() {
@@ -222,45 +232,89 @@ public:
             contagem[v.imagem]++;
         }
 
-        std::cout << "\nResultado parcial:\n";
+        std::cout << "Votos gerais:\n";
         for (const auto& [imagem, qtd] : contagem) {
             std::cout << imagem << ": " << qtd << " voto(s)\n";
         }
+
+        std::cout << '\n';
 
         if (!contagem.empty()) {
             auto max = std::max_element(contagem.begin(), contagem.end(),
                 [](const auto& a, const auto& b) {
                     return a.second < b.second;
                 });
-            std::cout << "\nImagem mais votada: " << max->first << " com " << max->second << " voto(s).\n";
+            std::cout << "Imagem mais votada: " << max->first << " com " << max->second << " voto(s).\n";
         }
     }
 
-    void salvarVoto(const std::string& arquivo, const std::string& usuario, const std::string& imagem) {
-        std::ofstream fout(arquivo, std::ios::app);
-        fout << usuario << "|" << imagem << "\n";
+    std::string pickUserVote(const std::string& user) {
+        for (const VotoDB& v : votos) {
+            if (v.usuario == user) {
+                return v.imagem;
+            }
+        }
+        return "";
     }
+
 };
 
-
-
-int main() {
-    setlocale(LC_ALL, "Portuguese_Brazil.1252");
-
+void fazerVotacao() {
     UserVerifier userV;
+    std::string fullUser = userV.getFullUser();
     Voto voto;
 
     voto.listarOpcoes();
-    
-    if (userV.verify()) {
+    std::cout << linebreak() << "\n";
 
-        voto.votar(userV.getFullUser());
+    if (!voto.usuarioJaVotou(fullUser)) {
+        if (userV.verify()) voto.votar(fullUser);
+        else std::cout << "Falha na autenticação. Verifique seu usuário e senha.\n";
     }
     else {
-        std::cout << "Usuário ou senha inválidos.\n";
-        return 1;
+        std::cout << "O usuário '" << fullUser << "' já votou em: '" << voto.pickUserVote(fullUser) << "'\n";
+        std::cout << linebreak() << "\n";
+        voto.mostrarResultado();
+        std::cout << linebreak() << "\n";
+    }
+}
+
+void verResultados() {
+    Voto voto;
+    std::cout << linebreak() << "\n";
+    voto.mostrarResultado();
+    std::cout << linebreak() << "\n";
+}
+
+int main(int argc, char* argv[]) {
+    setlocale(LC_ALL, "Portuguese_Brazil.1252");
+
+    std::cout << "Bem-vindo!\n";
+    while (true) {
+        std::cout << "1 - Fazer votação\n";
+        std::cout << "2 - Ver resultados\n";
+        std::cout << "Tecle um numero: ";
+
+        char opcao;
+        opcao = _getch();
+
+        std::cout << "\n";
+
+        switch (opcao)
+        {
+        case '1':
+            fazerVotacao();
+            break;
+        case '2':
+            verResultados();
+            break;
+        default:
+            std::cout << "Opção inválida!\n";
+            break;
+        }
+        pressToContinue();
+        system("cls");
     }
 
-    system("pause");
     return 0;
 }
